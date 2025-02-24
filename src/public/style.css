@@ -1,0 +1,50 @@
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.input-section {
+    margin-bottom: 20px;
+}
+
+.status {
+    margin: 10px 0;
+    padding: 10px;
+    border-radius: 4px;
+}
+
+.workspace {
+    display: flex;
+    gap: 20px;
+}
+
+.file-tree {
+    width: 300px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.code-editor {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.file, .directory {
+    padding: 4px;
+    cursor: pointer;
+}
+
+.code-file {
+    margin-bottom: 20px;
+}
+
+.code-file pre {
+    background: #f5f5f5;
+    padding: 10px;
+    border-radius: 4px;
+    overflow-x: auto;
+} 

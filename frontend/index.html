@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Code Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-jsx.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-tsx.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" />
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1E1E1E;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #424548;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4f5255;
+        }
+
+        /* For Firefox */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: #424548 #1E1E1E;
+        }
+    </style>
+</head>
+<body class="bg-[#1E1E1E]">
+    <!-- Main Container -->
+    <div class="flex h-screen">
+        <!-- Left Panel - Chat (reduced width) -->
+        <div class="w-[350px] flex flex-col bg-[#1E1E1E] border-r border-[#424548]">
+            <!-- Chat Header -->
+            <div class="h-14 bg-[#2D2D2D] flex items-center px-4 border-b border-[#424548]">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center">
+                    <span class="text-sm font-semibold text-white">AI</span>
+                </div>
+                <span class="ml-3 font-medium text-[#E1E4E8]">Code Generator</span>
+            </div>
+
+            <!-- Project Settings -->
+            <div class="p-4 bg-[#252526] border-b border-[#424548] space-y-3 flex-shrink-0">
+                <!-- Framework Selection -->
+                <select id="frameworkSelect" class="w-full bg-[#2A2D2E] rounded px-3 py-2 text-sm text-[#E1E4E8] border border-[#424548] focus:border-[#58A6FF] outline-none">
+                    <option value="react">React.js</option>
+                    <option value="vue">Vue.js</option>
+                    <option value="angular">Angular</option>
+                    <option value="next">Next.js</option>
+                    <option value="none">No Framework</option>
+                </select>
+
+                <!-- Generate Button -->
+                <button id="generateBtn" class="w-full bg-[#238636] hover:bg-[#2ea043] text-white text-sm px-4 py-2 rounded flex items-center justify-center gap-2">
+                    <span>Generate Project</span>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Project Actions -->
+            <div class="flex gap-2 p-4 border-b border-[#424548] flex-shrink-0">
+                <button class="flex-1 bg-[#2A2D2E] hover:bg-[#353535] text-sm text-[#E1E4E8] px-3 py-2 rounded">
+                    New Project
+                </button>
+                <button class="flex-1 bg-[#2A2D2E] hover:bg-[#353535] text-sm text-[#E1E4E8] px-3 py-2 rounded">
+                    Save Project
+                </button>
+            </div>
+
+            <!-- Chat History -->
+            <div class="flex-1 min-h-0">
+                <div id="chatMessages" class="h-full overflow-y-auto p-6 space-y-6">
+                    <!-- Bot Introduction Message -->
+                    <div class="flex gap-4">
+                        <div class="w-8 h-8 rounded-full bg-[#2A2D2E] flex items-center justify-center flex-shrink-0">
+                            <span class="text-sm font-medium text-[#E1E4E8]">AI</span>
+                        </div>
+                        <div class="max-w-[85%] bg-[#2A2D2E] rounded-lg px-4 py-2.5">
+                            <p class="text-sm text-[#E1E4E8]">Hello! I'm your AI assistant. I can help you generate code for your project. What would you like to build today?</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Input -->
+            <div class="p-4 border-t border-[#424548] flex-shrink-0">
+                <div class="relative">
+                    <input 
+                        type="text"
+                        id="promptInput"
+                        placeholder="Describe your code requirements..."
+                        class="w-full bg-[#2A2D2E] rounded-lg pl-4 pr-20 py-3 text-sm text-[#E1E4E8] placeholder-[#8B949E] outline-none border border-transparent focus:border-[#58A6FF]"
+                    >
+                    <div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                        <button class="text-[#8B949E] hover:text-[#E1E4E8] p-1.5">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+                            </svg>
+                        </button>
+                        <button id="sendBtn" class="text-[#8B949E] hover:text-[#E1E4E8] p-1.5">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel - Code Editor (increased width) -->
+        <div class="flex-1 flex flex-col">
+            <!-- Top Bar -->
+            <div class="h-14 bg-[#2D2D2D] flex items-center justify-between border-b border-[#424548] px-2">
+                <div class="flex">
+                    <button id="codeBtn" class="h-14 px-4 text-sm text-[#58A6FF] bg-[#1E1E1E] border-t-2 border-[#58A6FF]">Code</button>
+                    <button id="previewBtn" class="h-14 px-4 text-sm text-[#8B949E] hover:text-[#E1E4E8]">Preview</button>
+                </div>
+                <!-- Project Actions -->
+                <div class="flex items-center gap-2 pr-2">
+                    <button class="px-3 py-1 text-sm text-[#E1E4E8] bg-[#2A2D2E] hover:bg-[#353535] rounded">Run</button>
+                    <button class="px-3 py-1 text-sm text-[#E1E4E8] bg-[#2A2D2E] hover:bg-[#353535] rounded">Build</button>
+                    <button class="px-3 py-1 text-white bg-[#238636] hover:bg-[#2ea043] rounded">Deploy</button>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="flex-1 flex h-[calc(100vh-36px)]">
+                <!-- File Explorer with fixed width and height -->
+                <div class="w-60 bg-[#252526] border-r border-[#424548] flex flex-col flex-shrink-0">
+                    <div class="px-4 py-2 text-xs font-medium text-[#8B949E] uppercase tracking-wide flex-shrink-0 border-b border-[#424548]">
+                        Files
+                    </div>
+                    <div id="fileTree" class="flex-1 overflow-y-auto" style="height: calc(100vh - 45px);">
+                        <!-- File tree content -->
+                    </div>
+                </div>
+
+                <!-- Editor Area -->
+                <div class="flex-1 flex flex-col min-w-0">
+                    <!-- Code Section -->
+                    <div id="codeSection" class="flex-1 flex flex-col overflow-hidden">
+                        <div id="codeDisplay" class="flex-1 overflow-auto bg-[#1E1E1E]" style="height: calc(100vh - 236px);">
+                            <!-- Code content -->
+                        </div>
+                    </div>
+
+                    <!-- Preview Section -->
+                    <div id="previewSection" class="hidden flex-1">
+                        <iframe id="preview" class="w-full h-full"></iframe>
+                    </div>
+
+                    <!-- Terminal (sticky at bottom) -->
+                    <div id="terminalPanel" class="h-[200px] border-t border-[#424548] flex-shrink-0 sticky bottom-0">
+                        <!-- Terminal Header -->
+                        <div class="h-9 px-4 bg-[#252526] border-b border-[#424548] flex items-center cursor-ns-resize">
+                            <span class="text-xs text-[#8B949E]">Terminal</span>
+                            <span class="mx-2 text-[#424548]">|</span>
+                            <span class="text-xs text-[#8B949E]">bash</span>
+                        </div>
+                        <!-- Terminal Content -->
+                        <div id="terminal" class="h-[calc(100%-36px)] bg-[#1E1E1E] p-3 font-mono text-sm text-[#E1E4E8] overflow-auto">
+                            <div class="flex items-center">
+                                <span class="text-[#58A6FF]">➜</span>
+                                <span class="text-[#4EC9B0] ml-2">~/project</span>
+                                <span class="ml-2">$</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html> 

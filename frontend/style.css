@@ -1,0 +1,475 @@
+/* Code container styles */
+.code-container {
+    overflow: auto;
+    width: 100%;
+    position: relative;
+    background: #1E1E1E;
+    height: 100%;
+}
+
+pre[class*="language-"] {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    font-size: 13px !important;
+    line-height: 20px !important;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace !important;
+}
+
+code[class*="language-"] {
+    font-family: inherit !important;
+    background: transparent !important;
+    text-shadow: none !important;
+}
+
+/* Code display container */
+#codeDisplay {
+    background: #1E1E1E;
+    overflow: hidden;
+    height: 100%;
+    width: 100%;
+    flex: 1;
+}
+
+/* Workspace layout */
+.workspace {
+    display: flex;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+}
+
+/* File tree fixed width */
+#fileTree {
+    width: 250px;
+    min-width: 250px;
+    max-width: 250px;
+    overflow-y: auto;
+    border-right: 1px solid #404040;
+}
+
+/* Main content area */
+.flex-1 {
+    flex: 1;
+    min-width: 0; /* Important for proper flex behavior */
+    width: 0; /* Important for proper flex behavior */
+}
+
+/* Scrollbar styles */
+.code-container::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+.code-container::-webkit-scrollbar-track {
+    background: #1E1E1E;
+}
+
+.code-container::-webkit-scrollbar-thumb {
+    background-color: #404040;
+    border: 3px solid #1E1E1E;
+    border-radius: 6px;
+}
+
+.code-container::-webkit-scrollbar-corner {
+    background: #1E1E1E;
+}
+
+/* Firefox scrollbar */
+.code-container {
+    scrollbar-width: thin;
+    scrollbar-color: #404040 #1E1E1E;
+}
+
+/* Chat message styles */
+#chatMessages {
+    background: #1E1E1E;
+    scrollbar-width: thin;
+    scrollbar-color: #404040 #1E1E1E;
+}
+
+#chatMessages::-webkit-scrollbar {
+    width: 8px;
+}
+
+#chatMessages::-webkit-scrollbar-track {
+    background: #1E1E1E;
+}
+
+#chatMessages::-webkit-scrollbar-thumb {
+    background-color: #404040;
+    border-radius: 4px;
+}
+
+/* Message animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+#chatMessages > div {
+    animation: fadeIn 0.3s ease-out forwards;
+}
+
+/* Ensure chat container takes remaining space */
+#chatMessages {
+    min-height: 0;
+    height: 0;
+    flex-grow: 1;
+}
+
+/* VS Code-like styles */
+.vs-tab {
+    height: 100%;
+    padding: 0 16px;
+    font-size: 13px;
+    color: #969696;
+    background: transparent;
+    border: none;
+    position: relative;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    user-select: none;
+}
+
+.vs-tab:hover {
+    background: #2A2A2A;
+}
+
+.vs-tab.active {
+    color: #ffffff;
+    background: #1E1E1E;
+}
+
+.vs-tab.active::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #007ACC;
+}
+
+/* File tree styles */
+.file-node {
+    padding: 3px 8px 3px 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+    color: #CCCCCC;
+    height: 22px;
+}
+
+.file-node:hover {
+    background: #2A2D2E;
+}
+
+.file-node.active {
+    background: #37373D;
+}
+
+.folder-header {
+    padding: 3px 8px 3px 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+    color: #CCCCCC;
+    height: 22px;
+}
+
+.folder-header:hover {
+    background: #2A2D2E;
+}
+
+.folder-children {
+    padding-left: 12px;
+}
+
+/* Terminal styles */
+#terminalPanel {
+    background: #1E1E1E;
+    width: 100%;
+    resize: vertical;
+    min-height: 32px;
+    max-height: 50vh;
+}
+
+#terminal {
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    line-height: 1.5;
+    -webkit-font-smoothing: auto;
+}
+
+/* Code display header */
+.code-file-header {
+    height: 35px;
+    background: #252526;
+    border-bottom: 1px solid #3C3C3C;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    font-size: 13px;
+    color: #CCCCCC;
+}
+
+/* Tab styles */
+.editor-tab {
+    height: 35px;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    font-size: 13px;
+    color: #969696;
+    background: #2D2D2D;
+    border-right: 1px solid #3C3C3C;
+    user-select: none;
+    cursor: pointer;
+}
+
+.editor-tab.active {
+    background: #1E1E1E;
+    color: #FFFFFF;
+    position: relative;
+}
+
+.editor-tab.active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #007ACC;
+}
+
+/* Token colors - VS Code Dark+ theme */
+.token.comment { color: #6A9955; }
+.token.string { color: #CE9178; }
+.token.number { color: #B5CEA8; }
+.token.keyword { color: #569CD6; }
+.token.function { color: #DCDCAA; }
+.token.class-name { color: #4EC9B0; }
+.token.operator { color: #D4D4D4; }
+.token.punctuation { color: #D4D4D4; }
+.token.property { color: #9CDCFE; }
+.token.constant { color: #4FC1FF; }
+.token.boolean { color: #569CD6; }
+.token.builtin { color: #4EC9B0; }
+
+/* Scrollbar styles */
+::-webkit-scrollbar {
+    width: 14px;
+    height: 14px;
+}
+
+::-webkit-scrollbar-track {
+    background: #1E1E1E;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #424242;
+    border: 3px solid #1E1E1E;
+    border-radius: 7px;
+}
+
+::-webkit-scrollbar-corner {
+    background: #1E1E1E;
+}
+
+/* Terminal styles */
+#terminalPanel {
+    background: #1E1E1E;
+    width: 100%;
+    resize: vertical;
+    min-height: 32px;
+    max-height: 50vh;
+}
+
+#terminal {
+    background: #1E1E1E;
+    font-family: 'Consolas', 'Monaco', monospace;
+    line-height: 1.6;
+}
+
+#terminal > div {
+    white-space: pre-wrap;
+    word-break: break-all;
+    padding: 1px 0;
+}
+
+/* Code display improvements */
+.code-file-header {
+    height: 35px;
+    background: #252526;
+    border-bottom: 1px solid #3C3C3C;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    font-size: 13px;
+    color: #CCCCCC;
+    user-select: none;
+}
+
+/* Update the toggle button styles */
+#codeBtn, #previewBtn {
+    padding: 6px 10px;
+    font-size: 12px;
+    border-radius: 0;
+    border: none;
+    background: transparent;
+    color: #969696;
+    position: relative;
+}
+
+#codeBtn.active, #previewBtn.active {
+    color: #ffffff;
+    background: #1E1E1E;
+}
+
+#codeBtn.active::after, #previewBtn.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: #1E1E1E;
+}
+
+/* Tab button styles */
+.tab-button {
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    height: 35px;
+    font-size: 12px;
+    color: #969696;
+    background: transparent;
+    border: none;
+    position: relative;
+    cursor: pointer;
+}
+
+.tab-button:hover {
+    color: #ffffff;
+}
+
+.tab-button.active {
+    color: #ffffff;
+    background: #1E1E1E;
+}
+
+.tab-button.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: #007ACC;
+}
+
+/* Terminal styles */
+#terminalPanel {
+    background: #1E1E1E;
+    width: 100%;
+    resize: vertical;
+    min-height: 32px;
+    max-height: 50vh;
+}
+
+.terminal-action {
+    color: #969696;
+    padding: 2px 8px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.terminal-action:hover {
+    color: #ffffff;
+}
+
+/* Cursor style for terminal resize */
+.cursor-ns-resize {
+    cursor: ns-resize;
+}
+
+/* Make sure code display takes remaining space */
+#codeDisplay {
+    min-height: 0;
+    flex: 1;
+}
+
+/* Message bubbles */
+.message {
+    max-width: 85%;
+    margin: 8px 0;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.message-bot {
+    background: #2D2D2D;
+    margin-right: auto;
+    border-top-left-radius: 2px;
+}
+
+.message-user {
+    background: #2B5278;
+    margin-left: auto;
+    border-top-right-radius: 2px;
+}
+
+/* Chat timestamp */
+.message-time {
+    font-size: 11px;
+    color: #808080;
+    margin-top: 4px;
+    text-align: right;
+}
+
+/* Input area */
+#promptInput {
+    min-height: 45px;
+    max-height: 120px;
+}
+
+#promptInput::-webkit-scrollbar {
+    width: 6px;
+}
+
+#promptInput::-webkit-scrollbar-thumb {
+    background: #404040;
+    border-radius: 3px;
+}
+
+/* Loading animation */
+.typing-indicator {
+    display: flex;
+    padding: 8px;
+    gap: 4px;
+}
+
+.typing-dot {
+    width: 8px;
+    height: 8px;
+    background: #808080;
+    border-radius: 50%;
+    animation: typing 1.4s infinite;
+}
+
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typing {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-4px); }
+}
