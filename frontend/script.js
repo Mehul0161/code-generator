@@ -372,19 +372,60 @@ document.addEventListener('DOMContentLoaded', () => {
         const container = document.createElement('div');
         container.className = 'h-full flex flex-col';
 
-        // Editor tabs
+        // Editor tabs with copy button
         const tabsContainer = document.createElement('div');
-        tabsContainer.className = 'flex bg-[#252526] border-b border-[#3C3C3C] flex-shrink-0';
+        tabsContainer.className = 'flex bg-[#252526] border-b border-[#3C3C3C] flex-shrink-0 justify-between items-center pr-2';
         
         const fileName = fileData.path.split('/').pop();
         const extension = fileName.split('.').pop().toLowerCase();
         
-        tabsContainer.innerHTML = `
-            <div class="editor-tab active px-4 py-2 flex items-center gap-2 bg-[#1E1E1E] border-t-2 border-[#58A6FF]">
-                <span>${getFileIcon(extension)}</span>
-                <span class="text-sm text-[#E1E4E8]">${fileName}</span>
-            </div>
+        // Left side - file name
+        const fileTab = document.createElement('div');
+        fileTab.className = 'editor-tab active px-4 py-2 flex items-center gap-2 bg-[#1E1E1E] border-t-2 border-[#58A6FF]';
+        fileTab.innerHTML = `
+            <span>${getFileIcon(extension)}</span>
+            <span class="text-sm text-[#E1E4E8]">${fileName}</span>
         `;
+
+        // Right side - copy button
+        const copyButton = document.createElement('button');
+        copyButton.className = 'text-[#E1E4E8] hover:bg-[#2A2D2E] p-1.5 rounded flex items-center gap-2 text-sm transition-colors';
+        copyButton.innerHTML = `
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/>
+            </svg>
+            <span>Copy</span>
+        `;
+
+        // Add click handler for copy button
+        copyButton.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(code);
+                copyButton.innerHTML = `
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    <span>Copied!</span>
+                `;
+                copyButton.classList.add('text-green-400');
+                
+                // Reset button after 2 seconds
+                setTimeout(() => {
+                    copyButton.innerHTML = `
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/>
+                        </svg>
+                        <span>Copy</span>
+                    `;
+                    copyButton.classList.remove('text-green-400');
+                }, 2000);
+            } catch (err) {
+                console.error('Failed to copy:', err);
+            }
+        });
+
+        tabsContainer.appendChild(fileTab);
+        tabsContainer.appendChild(copyButton);
 
         // Code editor container with fixed width and scrolling
         const editorContainer = document.createElement('div');
