@@ -23,65 +23,60 @@ function extractJSONFromResponse(response) {
     }
 }
 
+function getContextualImageURL(keyword, width = 800, height = 600) {
+    return `https://source.unsplash.com/random/${width}x${height}/?${keyword}`;
+}
+
 async function* generateProjectInSteps(prompt, techName) {
     console.log('\n=== Starting Project Generation ===');
     try {
-        // First generate and send the structure
-        console.log('1. Generating project structure');
-        const structureResponse = await axios({
-            url: GEMINI_API_URL,
-            method: "POST",
-            params: {
-                key: GEMINI_API_KEY
-            },
-            headers: {
-                "Content-Type": "application/json"
-            },
-            data: {
-                contents: [{
-                    parts: [{
-                        text: `As a software architect, analyze this ${techName} ${prompt} application and create a project structure.
-                        
-                        Return a JSON object in this exact format:
+        // Special handling for no-framework projects
+        if (techName.toLowerCase() === 'none') {
+            // Simplified structure for static websites
+            const staticStructure = {
+                analysis: `Static website for ${prompt} using HTML, CSS, and vanilla JavaScript with Tailwind CSS for styling.`,
+                structure: {
+                    name: "web-project",
+                    type: "directory",
+                    children: [
                         {
-                            "analysis": "Brief analysis of ${prompt} application needs",
-                            "structure": {
-                                "name": "root",
-                                "type": "directory",
-                                "children": [
-                                    {
-                                        "name": "filename",
-                                        "type": "file|directory",
-                                        "purpose": "Explain component purpose",
-                                        "children": []
-                                    }
-                                ]
-                            }
-                        }`
-                    }]
-                }]
-            }
-        });
-
-        let aiResponse;
-        try {
-            const responseContent = structureResponse.data.candidates[0].content.parts[0].text;
-            aiResponse = extractJSONFromResponse(responseContent);
-            console.log('Structure generated successfully');
-            
-            // Send the structure first
-            yield {
-                type: 'structure',
-                data: {
-                    analysis: aiResponse.analysis,
-                    files: getAllFilesFromStructure(aiResponse.structure),
-                    structure: aiResponse.structure
+                            name: "index.html",
+                            type: "file",
+                            path: "index.html",
+                            purpose: "Main HTML file with Tailwind setup and structure"
+                        },
+                        {
+                            name: "style.css",
+                            type: "file",
+                            path: "style.css",
+                            purpose: "Custom styles with Tailwind utilities"
+                        },
+                        {
+                            name: "script.js",
+                            type: "file",
+                            path: "script.js",
+                            purpose: "Vanilla JavaScript for functionality"
+                        }
+                    ]
                 }
             };
 
-            // Then generate code for each file
-            console.log('2. Generating code for files');
-            const files = getAllFilesFromStructure(aiResponse.structure);
+            // Send the static structure
+            yield {
+                type: 'structure',
+                data: {
+                    analysis: staticStructure.analysis,
+                    files: getAllFilesFromStructure(staticStructure.structure),
+                    structure: staticStructure.structure
+                }
+            };
+
+            // Extract keywords for images
+            const keywords = prompt.toLowerCase().split(' ')
+                .filter(word => !['a', 'the', 'and', 'or', 'in', 'on', 'at'].includes(word));
+
+            // Generate code for each file
+            const files = getAllFilesFromStructure(staticStructure.structure);
             
             for (const file of files) {
                 try {
@@ -89,20 +84,27 @@ async function* generateProjectInSteps(prompt, techName) {
                     const codeResponse = await axios({
                         url: GEMINI_API_URL,
                         method: "POST",
-                        params: {
-                            key: GEMINI_API_KEY
-                        },
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
+                        params: { key: GEMINI_API_KEY },
+                        headers: { "Content-Type": "application/json" },
                         data: {
                             contents: [{
                                 parts: [{
-                                    text: `Generate code for a ${techName} ${prompt} application.
+                                    text: `Generate code for a static webpage ${prompt}.
                                     File: ${file.path}
-                                    Purpose: ${file.purpose}
-                                    Analysis Context: ${aiResponse.analysis}
                                     
+                                    Requirements:
+                                    - Use only HTML, CSS (with Tailwind), and vanilla JavaScript
+                                    - No frameworks or libraries except Tailwind CSS
+                                    - Modern ES6+ JavaScript
+                                    - Responsive design using Tailwind
+                                    
+                                    Important: When generating HTML, use relevant images from Unsplash API with this format:
+                                    <img src="https://source.unsplash.com/random/800x600/?${keywords.join(',')}" 
+                                         alt="Descriptive text"
+                                         class="[appropriate tailwind classes]"
+                                         loading="lazy"
+                                    />
+
                                     Return ONLY the complete, working code for this file.`
                                 }]
                             }]
@@ -114,27 +116,136 @@ async function* generateProjectInSteps(prompt, techName) {
                         data: {
                             path: file.path,
                             code: codeResponse.data.candidates[0].content.parts[0].text.trim(),
-                            language: getLanguageFromPath(file.path),
-                            purpose: file.purpose
+                            language: getLanguageFromPath(file.path)
                         }
                     };
                 } catch (error) {
                     console.error(`Failed to generate code for ${file.path}:`, error);
                     yield {
                         type: 'error',
-                        data: {
-                            path: file.path,
-                            error: `Failed to generate code for ${file.path}`
-                        }
+                        data: { path: file.path, error: `Failed to generate code for ${file.path}` }
                     };
                 }
             }
+        } else {
+            // First generate and send the structure
+            console.log('1. Generating project structure');
+            const structureResponse = await axios({
+                url: GEMINI_API_URL,
+                method: "POST",
+                params: { key: GEMINI_API_KEY },
+                headers: { "Content-Type": "application/json" },
+                data: {
+                    contents: [{
+                        parts: [{
+                            text: `As a software architect, analyze this ${techName} ${prompt} application and create a project structure.
+                            
+                            Return a JSON object in this exact format:
+                            {
+                                "analysis": "Brief analysis of ${prompt} application needs",
+                                "structure": {
+                                    "name": "root",
+                                    "type": "directory",
+                                    "children": [
+                                        {
+                                            "name": "filename",
+                                            "type": "file|directory",
+                                            "purpose": "Explain component purpose",
+                                            "children": []
+                                        }
+                                    ]
+                                }
+                            }`
+                        }]
+                    }]
+                }
+            });
 
-        } catch (error) {
-            console.error('Failed to parse AI response:', error);
-            throw new Error('Failed to generate project structure');
+            let aiResponse;
+            try {
+                const responseContent = structureResponse.data.candidates[0].content.parts[0].text;
+                aiResponse = extractJSONFromResponse(responseContent);
+                console.log('Structure generated successfully');
+                
+                // Send the structure first
+                yield {
+                    type: 'structure',
+                    data: {
+                        analysis: aiResponse.analysis,
+                        files: getAllFilesFromStructure(aiResponse.structure),
+                        structure: aiResponse.structure
+                    }
+                };
+
+                // Extract keywords for images
+                const keywords = prompt.toLowerCase().split(' ')
+                    .filter(word => !['a', 'the', 'and', 'or', 'in', 'on', 'at'].includes(word));
+
+                // Then generate code for each file with image support
+                console.log('2. Generating code for files');
+                const files = getAllFilesFromStructure(aiResponse.structure);
+                
+                for (const file of files) {
+                    try {
+                        console.log(`Generating code for: ${file.path}`);
+                        const codeResponse = await axios({
+                            url: GEMINI_API_URL,
+                            method: "POST",
+                            params: { key: GEMINI_API_KEY },
+                            headers: { "Content-Type": "application/json" },
+                            data: {
+                                contents: [{
+                                    parts: [{
+                                        text: `Generate code for a ${techName} ${prompt} application.
+                                        File: ${file.path}
+                                        Purpose: ${file.purpose}
+                                        Analysis Context: ${aiResponse.analysis}
+
+                                        Important: When generating HTML/JSX, use relevant images from Unsplash API with this format:
+                                        <img src="https://source.unsplash.com/random/800x600/?${keywords.join(',')}" 
+                                             alt="Descriptive text"
+                                             class="[appropriate tailwind classes]"
+                                             loading="lazy"
+                                        />
+
+                                        Ensure images are:
+                                        1. Contextually relevant to the content
+                                        2. Responsive using Tailwind
+                                        3. Have proper alt text
+                                        4. Use lazy loading
+                                        5. Maintain proper aspect ratios
+                                        
+                                        Return ONLY the complete, working code for this file.`
+                                    }]
+                                }]
+                            }
+                        });
+
+                        yield {
+                            type: 'code',
+                            data: {
+                                path: file.path,
+                                code: codeResponse.data.candidates[0].content.parts[0].text.trim(),
+                                language: getLanguageFromPath(file.path)
+                            }
+                        };
+                    } catch (error) {
+                        console.error(`Failed to generate code for ${file.path}:`, error);
+                        yield {
+                            type: 'error',
+                            data: {
+                                path: file.path,
+                                error: `Failed to generate code for ${file.path}`
+                            }
+                        };
+                    }
+                }
+
+            } catch (error) {
+                console.error('Failed to parse AI response:', error);
+                throw new Error('Failed to generate project structure');
+            }
         }
-
     } catch (error) {
         console.error('Generation Error:', error);
         yield {

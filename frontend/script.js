@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Add these functions at the top level
     function addBotMessage(message) {
         const messageDiv = document.createElement('div');
-        messageDiv.className = 'flex gap-4 animate-fade-in';
+        messageDiv.className = 'flex gap-4 justify-start animate-fade-in';
         messageDiv.innerHTML = `
             <div class="w-8 h-8 rounded-full bg-[#2A2D2E] flex items-center justify-center flex-shrink-0">
                 <span class="text-sm font-medium text-[#E1E4E8]">AI</span>
@@ -52,13 +52,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function addUserMessage(message) {
         const messageDiv = document.createElement('div');
-        messageDiv.className = 'flex gap-4 animate-fade-in';
+        messageDiv.className = 'flex gap-4 justify-end animate-fade-in';
         messageDiv.innerHTML = `
+            <div class="max-w-[85%] bg-[#2B5278] rounded-lg px-4 py-2.5">
+                <p class="text-sm text-[#E1E4E8]">${message}</p>
+            </div>
             <div class="w-8 h-8 rounded-full bg-[#C084FC] flex items-center justify-center flex-shrink-0">
                 <span class="text-sm font-medium text-white">U</span>
-            </div>
-            <div class="max-w-[85%] bg-[#2A2D2E] rounded-lg px-4 py-2.5">
-                <p class="text-sm text-[#E1E4E8]">${message}</p>
             </div>
         `;
         chatMessages.appendChild(messageDiv);
@@ -482,7 +482,11 @@ document.addEventListener('DOMContentLoaded', () => {
             md: 'markdown',
             gitignore: 'plaintext',
             env: 'plaintext',
-            config: 'javascript'
+            config: 'javascript',
+            // Add support for vanilla web files
+            htm: 'html',
+            mjs: 'javascript',
+            cjs: 'javascript'
         };
         return languageMap[ext] || 'plaintext';
     }
@@ -604,5 +608,17 @@ document.addEventListener('DOMContentLoaded', () => {
             // Re-enable framework selection on error
             frameworkSelect.disabled = false;
         }
+    }
+
+    // Add this helper function to get contextual images
+    function getContextualImageURL(keyword, width = 800, height = 600) {
+        // List of image services we can use
+        const imageServices = [
+            `https://source.unsplash.com/random/${width}x${height}/?${keyword}`,
+            `https://picsum.photos/${width}/${height}?${keyword}`,
+            `https://placehold.co/${width}x${height}/png?text=${keyword}`
+        ];
+        
+        return imageServices[0]; // Using Unsplash as primary source
     }
 }); 

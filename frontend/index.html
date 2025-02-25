@@ -86,7 +86,7 @@
             <div class="flex-1 min-h-0">
                 <div id="chatMessages" class="h-full overflow-y-auto p-6 space-y-6">
                     <!-- Bot Introduction Message -->
-                    <div class="flex gap-4">
+                    <div class="flex gap-4 justify-start">
                         <div class="w-8 h-8 rounded-full bg-[#2A2D2E] flex items-center justify-center flex-shrink-0">
                             <span class="text-sm font-medium text-[#E1E4E8]">AI</span>
                         </div>
@@ -104,15 +104,15 @@
                         type="text"
                         id="promptInput"
                         placeholder="Describe your code requirements..."
-                        class="w-full bg-[#2A2D2E] rounded-lg pl-4 pr-20 py-3 text-sm text-[#E1E4E8] placeholder-[#8B949E] outline-none border border-transparent focus:border-[#58A6FF]"
+                        class="w-full bg-[#2A2D2E] rounded-lg pl-4 pr-20 py-3 text-sm text-[#E1E4E8] placeholder-[#8B949E] outline-none border border-[#424548] focus:border-[#58A6FF]"
                     >
                     <div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                        <button class="text-[#8B949E] hover:text-[#E1E4E8] p-1.5">
+                        <button class="text-[#E1E4E8] p-1.5 hover:scale-110 transition-transform">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
                             </svg>
                         </button>
-                        <button id="sendBtn" class="text-[#8B949E] hover:text-[#E1E4E8] p-1.5">
+                        <button id="sendBtn" class="text-[#E1E4E8] p-1.5 hover:scale-110 transition-transform">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
                             </svg>

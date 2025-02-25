@@ -338,6 +338,30 @@ const projectTemplates = {
                 path: 'tsconfig.json'
             }
         ]
+    },
+    none: {
+        name: 'web-project',
+        type: 'directory',
+        children: [
+            {
+                name: 'index.html',
+                type: 'file',
+                path: 'index.html',
+                purpose: 'Main HTML file with Tailwind setup and structure'
+            },
+            {
+                name: 'style.css',
+                type: 'file',
+                path: 'style.css',
+                purpose: 'Custom styles with Tailwind utilities'
+            },
+            {
+                name: 'script.js',
+                type: 'file',
+                path: 'script.js',
+                purpose: 'JavaScript for application logic and functionality'
+            }
+        ]
     }
 };
 
@@ -368,8 +392,11 @@ function customizeTemplate(template, prompt) {
     // Deep clone the template to avoid modifying the original
     const structure = JSON.parse(JSON.stringify(template));
     
-    // Add any prompt-specific customization here
-    // For example, adding specific components based on the prompt
+    // For no-framework projects, ensure we're using the simplified structure
+    if (structure.name === 'web-project' && structure.children.length === 3) {
+        // The structure is already correct for no-framework
+        return structure;
+    }
     
     return structure;
 }
