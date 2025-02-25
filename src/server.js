@@ -3,6 +3,7 @@ const cors = require('cors');
 require('dotenv').config();
 const { generateProjectStructure } = require('./utils/structureGenerator');
 const { getCode, generateProjectInSteps, updateCode } = require('./utils/codeGenerator');
+const AIService = require('./utils/aiService');
 
 const app = express();
 
@@ -101,6 +102,36 @@ app.post("/api/update", async (req, res) => {
             type: 'error',
             error: error.message
         });
+    }
+});
+
+// Add new endpoint for code updates
+app.post('/api/update-code', async (req, res) => {
+    console.log('\n=== Starting Project Update ===');
+    
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+
+    try {
+        const { prompt, previousPrompt, projectType, files } = req.body;
+        
+        // Use the generator for updates
+        const generator = AIService.updateProject(prompt, previousPrompt, files, projectType);
+        
+        for await (const result of generator) {
+            res.write(`data: ${JSON.stringify(result)}\n\n`);
+        }
+
+        res.end();
+    } catch (error) {
+        console.error('Update Error:', error);
+        res.write(`data: ${JSON.stringify({
+            type: 'error',
+            data: { error: error.message }
+        })}\n\n`);
+        res.end();
     }
 });
 

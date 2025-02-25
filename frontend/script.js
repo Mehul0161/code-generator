@@ -31,8 +31,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const frameworkSelect = document.getElementById('frameworkSelect');
     const sendBtn = document.getElementById('sendBtn');
 
-    let currentFiles = new Map(); // Use Map to store files by path
-    let currentStructure = null;
+    let currentSession = {
+        projectType: null,  // 'none', 'react', etc.
+        files: new Map(),   // Current files
+        structure: null,    // Project structure
+        lastPrompt: '',     // Last prompt for context
+        isInitialized: false // Whether first generation is done
+    };
 
     // Add these functions at the top level
     function addBotMessage(message) {
@@ -95,6 +100,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Handle Generate Button Click
     generateBtn.addEventListener('click', async () => {
+        if (currentSession.isInitialized) return; // Prevent multiple generations
+        
         const framework = frameworkSelect.value;
         const prompt = promptInput.value.trim();
 
@@ -116,7 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
 
             // Clear previous files and messages
-            currentFiles.clear();
+            currentSession.files.clear();
             chatMessages.innerHTML = '';
             
             // Add initial messages
@@ -174,9 +181,9 @@ document.addEventListener('DOMContentLoaded', () => {
                                     code: message.data.code,
                                     language: message.data.language || getLanguageFromPath(message.data.path)
                                 };
-                                currentFiles.set(fileData.path, fileData);
+                                currentSession.files.set(fileData.path, fileData);
                                 
-                                if (currentFiles.size === 1) {
+                                if (currentSession.files.size === 1) {
                                     displayCode(fileData);
                                 }
                                 break;
@@ -194,6 +201,27 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             }
+
+            // After successful generation
+            currentSession.isInitialized = true;
+            currentSession.projectType = framework;
+            currentSession.lastPrompt = prompt;
+            
+            // Update generate button permanently
+            generateBtn.disabled = true;
+            generateBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            generateBtn.innerHTML = `
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                Project Generated
+            `;
+            
+            // Disable framework select
+            frameworkSelect.disabled = true;
+            
+            // Update prompt placeholder
+            promptInput.placeholder = "Describe the changes you want to make...";
 
         } catch (error) {
             console.error('Error:', error);
@@ -242,7 +270,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderFileTree(data) {
         console.log('Rendering file tree with data:', data);
         fileTree.innerHTML = '';
-        currentStructure = data.structure;
+        currentSession.structure = data.structure;
 
         // File tree container
         const treeContainer = document.createElement('div');
@@ -266,11 +294,11 @@ document.addEventListener('DOMContentLoaded', () => {
             div.onclick = () => {
                 console.log('File clicked:', fullPath);
                 // Try multiple ways to find the file
-                let file = currentFiles.get(fullPath);
+                let file = currentSession.files.get(fullPath);
                 if (!file) {
                     // Try without the project name prefix
                     const shortPath = fullPath.split('/').slice(1).join('/');
-                    file = Array.from(currentFiles.values()).find(f => 
+                    file = Array.from(currentSession.files.values()).find(f => 
                         f.path.endsWith(shortPath) || 
                         f.path.includes(fileName)
                     );
@@ -552,36 +580,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Update handleSendMessage to disable framework selection
     async function handleSendMessage() {
-        const prompt = promptInput.value.trim();
-        const framework = frameworkSelect.value;
+        if (!currentSession.isInitialized) {
+            addBotMessage("Please generate a project first using the Generate button.");
+            return;
+        }
 
+        const prompt = promptInput.value.trim();
         if (!prompt) return;
 
         try {
-            // Disable framework selection
-            frameworkSelect.disabled = true;
-            
-            // Rest of your existing handleSendMessage code...
             addUserMessage(prompt);
             promptInput.value = '';
             showTypingIndicator();
 
-            const response = await fetch('http://localhost:5000/api/generate-project', {
+            console.log('\n=== Starting Code Update ===');
+            console.log('Current session:', {
+                projectType: currentSession.projectType,
+                filesCount: currentSession.files.size,
+                lastPrompt: currentSession.lastPrompt
+            });
+
+            const response = await fetch('http://localhost:5000/api/update-code', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    techName: framework,
-                    prompt: prompt
+                    prompt: prompt,
+                    previousPrompt: currentSession.lastPrompt,
+                    projectType: currentSession.projectType,
+                    files: Object.fromEntries(currentSession.files)
                 })
             });
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            // Handle streaming response
+            // Handle streaming response for updates
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
             let buffer = '';
@@ -597,47 +629,45 @@ document.addEventListener('DOMContentLoaded', () => {
                 for (const line of lines) {
                     if (!line.trim() || !line.startsWith('data: ')) continue;
 
-                    try {
-                        const jsonStr = line.slice(6);
-                        const message = JSON.parse(jsonStr);
-                        
-                        // Remove typing indicator
-                        removeTypingIndicator();
+                    const message = JSON.parse(line.slice(6));
+                    console.log('Received message:', message);
 
-                        // Handle different message types
-                        switch (message.type) {
-                            case 'start':
-                                addBotMessage(`Creating a new ${framework} project based on your description...`);
-                                break;
+                    switch (message.type) {
+                        case 'analysis':
+                            removeTypingIndicator();
+                            addBotMessage(message.data.message);
+                            if (message.data.message.includes('No valid files found')) {
+                                addBotMessage("💡 Tip: You might need to create new files first. Try generating a new project with the required structure.");
+                            }
+                            break;
 
-                            case 'structure':
-                                addBotMessage("Project structure created. Generating code...");
-                                renderFileTree(message.data);
-                                break;
+                        case 'update':
+                            const fileData = message.data;
+                            const oldFile = currentSession.files.get(fileData.path);
+                            
+                            // Only update and show if code has changed
+                            if (!oldFile || oldFile.code !== fileData.code) {
+                                console.log(`Updating file: ${fileData.path}`);
+                                currentSession.files.set(fileData.path, fileData);
+                                displayCode(fileData);
+                                addBotMessage(`✏️ Updated ${fileData.path.split('/').pop()}`);
+                            } else {
+                                console.log(`No changes needed in: ${fileData.path}`);
+                            }
+                            break;
 
-                            case 'code':
-                                const fileData = {
-                                    path: message.data.path,
-                                    code: message.data.code,
-                                    language: message.data.language || getLanguageFromPath(message.data.path)
-                                };
-                                currentFiles.set(fileData.path, fileData);
-                                
-                                if (currentFiles.size === 1) {
-                                    displayCode(fileData);
-                                }
-                                break;
+                        case 'complete':
+                            console.log('Update complete');
+                            currentSession.lastPrompt = prompt;
+                            addBotMessage("✨ Changes applied successfully!");
+                            break;
 
-                            case 'complete':
-                                addBotMessage("✨ Project generation complete! You can now explore the files.");
-                                break;
-
-                            case 'error':
-                                addBotMessage(`❌ Error: ${message.data.error}`);
-                                break;
-                        }
-                    } catch (error) {
-                        console.error('Error parsing message:', error);
+                        case 'error':
+                            console.error('Error:', message.data.error);
+                            removeTypingIndicator();
+                            addBotMessage(`❌ Error: ${message.data.error}`);
+                            addBotMessage("💡 Tip: Make sure your request matches the current project structure.");
+                            break;
                     }
                 }
             }
@@ -646,8 +676,6 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Request failed:', error);
             removeTypingIndicator();
             addBotMessage(`❌ Error: ${error.message}`);
-            // Re-enable framework selection on error
-            frameworkSelect.disabled = false;
         }
     }
 
@@ -661,5 +689,15 @@ document.addEventListener('DOMContentLoaded', () => {
         ];
         
         return imageServices[0]; // Using Unsplash as primary source
+    }
+
+    // Helper function to log session state
+    function logSessionState() {
+        console.log('Current Session State:', {
+            projectType: currentSession.projectType,
+            filesCount: currentSession.files.size,
+            isInitialized: currentSession.isInitialized,
+            lastPrompt: currentSession.lastPrompt
+        });
     }
 }); 
