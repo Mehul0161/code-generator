@@ -106,6 +106,27 @@ class AIService {
                 data: { message: `🚀 Starting new ${techName} project generation...` }
             };
 
+            // First get project analysis
+            const analysisResponse = await this.makeApiRequest(`
+                Analyze this project request and provide a detailed breakdown:
+                ${prompt}
+
+                Return a concise but detailed description of:
+                1. Main features and functionality
+                2. UI/UX elements and design choices
+                3. Technical components needed
+                4. Key interactions and behaviors
+
+                Format as a clear, user-friendly summary.
+            `);
+
+            const projectAnalysis = analysisResponse.data.candidates[0].content.parts[0].text;
+            
+            yield {
+                type: 'analysis',
+                data: { message: `📋 Project Analysis:\n${projectAnalysis}` }
+            };
+
             // Get base structure based on framework
             const baseStructure = this.getFrameworkStructure(techName);
             console.log(`\n1. Using ${techName} base structure template`);
@@ -252,35 +273,50 @@ class AIService {
     static async *updateProject(prompt, previousPrompt, files, projectType) {
         try {
             console.log('\n=== Starting Project Update Analysis ===');
-            console.log('Previous task:', previousPrompt);
-            console.log('New request:', prompt);
-            console.log('Project type:', projectType);
-            console.log('Available files:', Object.keys(files));
-
-            // Analyze what needs to be changed
-            const analysisResponse = await this.makeApiRequest(`
-                Previous task: ${previousPrompt}
-                New request: ${prompt}
+            
+            // First analyze the requested changes
+            const changeAnalysis = await this.makeApiRequest(`
+                Previous project state: ${previousPrompt}
+                Requested changes: ${prompt}
                 Project type: ${projectType}
-                
-                Available files in the project:
-                ${Object.keys(files).join('\n')}
-                
-                Important: Only return paths from the above list that need to be modified.
-                Do not suggest new files that don't exist.
-                Return only the exact file paths, one per line.
+
+                Analyze the requested changes and provide:
+                1. What features/functionality will be added/modified
+                2. UI/UX impacts
+                3. Required code modifications
+                4. Any potential challenges
+
+                Format as a clear, user-friendly summary.
             `);
 
-            const filesToUpdate = analysisResponse.data.candidates[0].content.parts[0].text
+            const analysisText = changeAnalysis.data.candidates[0].content.parts[0].text;
+            
+            yield {
+                type: 'analysis',
+                data: { message: `�� Change Analysis:\n${analysisText}` }
+            };
+
+            // Then get files to update
+            const filesToUpdate = await this.makeApiRequest(`
+                Based on this analysis:
+                ${analysisText}
+
+                Available files:
+                ${Object.keys(files).join('\n')}
+
+                Which specific files need to be modified? Return only the exact file paths, one per line.
+            `);
+
+            const filePaths = filesToUpdate.data.candidates[0].content.parts[0].text
                 .split('\n')
                 .filter(line => line.trim())
                 .map(line => line.trim())
-                .filter(path => files[path]); // Only keep paths that exist
+                .filter(path => files[path]);
 
             console.log('\n=== Files to Update ===');
-            console.log('Found files:', filesToUpdate);
+            console.log('Found files:', filePaths);
 
-            if (filesToUpdate.length === 0) {
+            if (filePaths.length === 0) {
                 console.log('No valid files to update');
                 yield {
                     type: 'analysis',
@@ -294,12 +330,12 @@ class AIService {
             yield {
                 type: 'analysis',
                 data: { 
-                    message: `🔍 Analysis complete:\n${filesToUpdate.length} files will be updated` 
+                    message: `🔍 Analysis complete:\n${filePaths.length} files will be updated` 
                 }
             };
 
             // Update each file
-            for (const filePath of filesToUpdate) {
+            for (const filePath of filePaths) {
                 console.log(`\n=== Updating ${filePath} ===`);
                 const file = files[filePath];
                 
