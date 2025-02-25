@@ -253,10 +253,10 @@ document.addEventListener('DOMContentLoaded', () => {
             div.className = `file-node flex items-center hover:bg-[#2A2D2E] cursor-pointer py-1.5`;
             div.style.paddingLeft = `${indent * 12 + 12}px`;
             
-            // Get the correct file path
-            const fullPath = fileData.path || (fileData.name ? `${data.files.find(f => f.name === fileData.name)?.path}` : '');
+            // Get the full path for the file
+            const fullPath = fileData.path || (fileData.name ? `todo-app/${fileData.name}` : '');
             const fileName = fullPath.split('/').pop();
-            const extension = fileName.split('.').pop();
+            const extension = fileName.split('.').pop().toLowerCase();
             
             div.innerHTML = `
                 <span class="mr-2">${getFileIcon(extension)}</span>
@@ -265,8 +265,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
             div.onclick = () => {
                 console.log('File clicked:', fullPath);
-                // Try to find the file in currentFiles
-                const file = currentFiles.get(fullPath) || Array.from(currentFiles.values()).find(f => f.path.endsWith(fullPath));
+                // Try multiple ways to find the file
+                let file = currentFiles.get(fullPath);
+                if (!file) {
+                    // Try without the project name prefix
+                    const shortPath = fullPath.split('/').slice(1).join('/');
+                    file = Array.from(currentFiles.values()).find(f => 
+                        f.path.endsWith(shortPath) || 
+                        f.path.includes(fileName)
+                    );
+                }
+                
                 if (file) {
                     console.log('Found file data:', file);
                     displayCode(file);
@@ -377,12 +386,19 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `;
 
-        // Code editor container with horizontal scroll
+        // Code editor container with fixed width and scrolling
         const editorContainer = document.createElement('div');
-        editorContainer.className = 'overflow-auto h-full';
+        editorContainer.className = 'overflow-auto flex-1';
+        editorContainer.style.height = 'calc(100vh - 236px)';
 
+        // Code content wrapper with horizontal scroll
+        const codeWrapper = document.createElement('div');
+        codeWrapper.className = 'overflow-x-auto';
+        codeWrapper.style.width = '100%';  // Fixed width
+        
         const pre = document.createElement('pre');
-        pre.className = `language-${getLanguageFromPath(fileData.path)} m-0 p-4 bg-[#1E1E1E] min-h-full min-w-max`;
+        pre.className = `language-${getLanguageFromPath(fileData.path)} m-0 p-4 bg-[#1E1E1E]`;
+        pre.style.minWidth = 'max-content';  // Allow content to determine width
         
         const codeElement = document.createElement('code');
         codeElement.className = `language-${getLanguageFromPath(fileData.path)} whitespace-pre`;
@@ -392,8 +408,8 @@ document.addEventListener('DOMContentLoaded', () => {
         codeElement.style.lineHeight = '1.5';
 
         pre.appendChild(codeElement);
-        editorContainer.appendChild(pre);
-
+        codeWrapper.appendChild(pre);
+        editorContainer.appendChild(codeWrapper);
         container.appendChild(tabsContainer);
         container.appendChild(editorContainer);
 

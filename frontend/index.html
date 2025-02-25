@@ -42,8 +42,8 @@
 <body class="bg-[#1E1E1E]">
     <!-- Main Container -->
     <div class="flex h-screen">
-        <!-- Left Panel - Chat (reduced width) -->
-        <div class="w-[350px] flex flex-col bg-[#1E1E1E] border-r border-[#424548]">
+        <!-- Left Panel - Chat (fixed width) -->
+        <div class="w-[350px] min-w-[350px] max-w-[350px] flex flex-col bg-[#1E1E1E] border-r border-[#424548]">
             <!-- Chat Header -->
             <div class="h-14 bg-[#2D2D2D] flex items-center px-4 border-b border-[#424548]">
                 <div class="w-8 h-8 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center">
@@ -122,8 +122,8 @@
             </div>
         </div>
 
-        <!-- Right Panel - Code Editor (increased width) -->
-        <div class="flex-1 flex flex-col">
+        <!-- Right Panel - Code Editor (fixed width) -->
+        <div class="flex-1 flex flex-col min-w-0">
             <!-- Top Bar -->
             <div class="h-14 bg-[#2D2D2D] flex items-center justify-between border-b border-[#424548] px-2">
                 <div class="flex">
@@ -140,8 +140,8 @@
 
             <!-- Main Content -->
             <div class="flex-1 flex h-[calc(100vh-36px)]">
-                <!-- File Explorer with fixed width and height -->
-                <div class="w-60 bg-[#252526] border-r border-[#424548] flex flex-col flex-shrink-0">
+                <!-- File Explorer (fixed width) -->
+                <div class="w-60 min-w-[240px] max-w-[240px] bg-[#252526] border-r border-[#424548] flex flex-col flex-shrink-0">
                     <div class="px-4 py-2 text-xs font-medium text-[#8B949E] uppercase tracking-wide flex-shrink-0 border-b border-[#424548]">
                         Files
                     </div>
@@ -150,11 +150,11 @@
                     </div>
                 </div>
 
-                <!-- Editor Area -->
-                <div class="flex-1 flex flex-col min-w-0">
+                <!-- Editor Area (remaining width) -->
+                <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
                     <!-- Code Section -->
                     <div id="codeSection" class="flex-1 flex flex-col overflow-hidden">
-                        <div id="codeDisplay" class="flex-1 overflow-auto bg-[#1E1E1E]" style="height: calc(100vh - 236px);">
+                        <div id="codeDisplay" class="flex-1 overflow-auto bg-[#1E1E1E]">
                             <!-- Code content -->
                         </div>
                     </div>
