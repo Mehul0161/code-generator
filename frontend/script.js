@@ -500,6 +500,10 @@ document.addEventListener('DOMContentLoaded', () => {
         
         codeSection.classList.remove('hidden');
         previewSection.classList.add('hidden');
+        
+        // Show file section and terminal
+        document.querySelector('.w-60').classList.remove('hidden');
+        terminalPanel.classList.remove('hidden');
     });
 
     previewBtn.addEventListener('click', () => {
@@ -510,6 +514,10 @@ document.addEventListener('DOMContentLoaded', () => {
         
         previewSection.classList.remove('hidden');
         codeSection.classList.add('hidden');
+        
+        // Hide file section and terminal
+        document.querySelector('.w-60').classList.add('hidden');
+        terminalPanel.classList.add('hidden');
     });
 
     // Terminal resize functionality
@@ -700,4 +708,118 @@ document.addEventListener('DOMContentLoaded', () => {
             lastPrompt: currentSession.lastPrompt
         });
     }
+
+    // Update the preview toggle functionality
+    function setupPreviewToggle() {
+        const codeBtn = document.getElementById('codeBtn');
+        const previewBtn = document.getElementById('previewBtn');
+        const codeSection = document.getElementById('codeSection');
+        const previewSection = document.getElementById('previewSection');
+        const fileTree = document.getElementById('fileTree');
+        const terminalPanel = document.getElementById('terminalPanel');
+
+        // Add preview header
+        const previewHeader = document.createElement('div');
+        previewHeader.className = 'sticky top-0 z-10 bg-[#2D2D2D] border-b border-[#424548] px-4 py-2 flex items-center justify-between';
+        previewHeader.innerHTML = `
+            <div class="flex items-center gap-2">
+                <span class="text-[#E1E4E8] text-sm">Preview Mode</span>
+                <span class="px-2 py-0.5 text-xs bg-[#2EA043] text-white rounded">Live</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <!-- Device Responsive Buttons -->
+                <div class="flex items-center gap-2">
+                    <button class="preview-device-btn" data-width="375" title="Mobile">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                        </svg>
+                    </button>
+                    <button class="preview-device-btn" data-width="768" title="Tablet">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                        </svg>
+                    </button>
+                    <button class="preview-device-btn" data-width="1024" title="Desktop">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
+                    </button>
+                </div>
+                <!-- Open in New Tab Button -->
+                <button id="openNewTabBtn" class="text-[#E1E4E8] hover:text-white">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                    </svg>
+                </button>
+            </div>
+        `;
+        previewSection.insertBefore(previewHeader, previewSection.firstChild);
+
+        // Add styles for preview device buttons
+        const style = document.createElement('style');
+        style.textContent = `
+            .preview-device-btn {
+                color: #8B949E;
+                padding: 4px;
+                border-radius: 4px;
+                transition: all 0.2s;
+            }
+            .preview-device-btn:hover {
+                color: #E1E4E8;
+                background: #363636;
+            }
+            .preview-device-btn.active {
+                color: #58A6FF;
+                background: #1E1E1E;
+            }
+            #preview {
+                margin: 0 auto;
+                transition: width 0.3s ease;
+                height: calc(100vh - 102px); /* Adjust based on header heights */
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Toggle sections and handle preview
+        function togglePreview(showPreview) {
+            codeBtn.classList.toggle('text-[#58A6FF]', !showPreview);
+            codeBtn.classList.toggle('bg-[#1E1E1E]', !showPreview);
+            previewBtn.classList.toggle('text-[#58A6FF]', showPreview);
+            previewBtn.classList.toggle('bg-[#1E1E1E]', showPreview);
+            
+            codeSection.style.display = showPreview ? 'none' : 'flex';
+            previewSection.style.display = showPreview ? 'flex' : 'none';
+            fileTree.style.display = showPreview ? 'none' : 'block';
+            terminalPanel.style.display = showPreview ? 'none' : 'block';
+        }
+
+        // Event listeners
+        previewBtn.addEventListener('click', () => togglePreview(true));
+        codeBtn.addEventListener('click', () => togglePreview(false));
+
+        // Handle device preview buttons
+        document.querySelectorAll('.preview-device-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const width = e.currentTarget.dataset.width;
+                const iframe = document.getElementById('preview');
+                
+                // Update active state
+                document.querySelectorAll('.preview-device-btn').forEach(b => 
+                    b.classList.remove('active'));
+                e.currentTarget.classList.add('active');
+                
+                // Update iframe width
+                iframe.style.width = `${width}px`;
+            });
+        });
+
+        // Handle open in new tab
+        document.getElementById('openNewTabBtn').addEventListener('click', () => {
+            const iframe = document.getElementById('preview');
+            window.open(iframe.src, '_blank');
+        });
+    }
+
+    // Call this function after your DOM is loaded
+    setupPreviewToggle();
 }); 
