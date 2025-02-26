@@ -38,7 +38,11 @@ class DaytonaService {
             const data = await response.json();
             this.workspace = data.workspaceId;
             
-            return data.previewUrl;
+            // Ensure the preview URL is absolute
+            const previewUrl = new URL(data.previewUrl, window.location.origin).toString();
+            console.log('Generated preview URL:', previewUrl);
+            
+            return previewUrl;
         } catch (error) {
             console.error('Preview initialization failed:', error);
             throw error;

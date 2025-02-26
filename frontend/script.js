@@ -515,7 +515,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Update the tab switching logic
-    function switchToPreview() {
+    function switchToPreview(e) {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
         try {
             // Update button states
             previewBtn.classList.add('text-[#58A6FF]', 'bg-[#1E1E1E]', 'border-t-2', 'border-[#58A6FF]');
@@ -526,26 +531,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Hide code-related elements with smooth transition
             const fileExplorer = document.querySelector('.w-60');
-            fileExplorer.style.transition = 'transform 0.3s ease-out';
-            fileExplorer.style.transform = 'translateX(-100%)';
-            setTimeout(() => fileExplorer.classList.add('hidden'), 300);
+            if (fileExplorer) {
+                fileExplorer.style.transition = 'transform 0.3s ease-out';
+                fileExplorer.style.transform = 'translateX(-100%)';
+                setTimeout(() => fileExplorer.classList.add('hidden'), 300);
+            }
             
-            terminalPanel.style.transition = 'transform 0.3s ease-out';
-            terminalPanel.style.transform = 'translateY(100%)';
-            setTimeout(() => terminalPanel.classList.add('hidden'), 300);
+            if (terminalPanel) {
+                terminalPanel.style.transition = 'transform 0.3s ease-out';
+                terminalPanel.style.transform = 'translateY(100%)';
+                setTimeout(() => terminalPanel.classList.add('hidden'), 300);
+            }
             
-            codeSection.classList.add('hidden');
+            if (codeSection) {
+                codeSection.classList.add('hidden');
+            }
             
             // Show preview section
-            previewSection.classList.remove('hidden');
-            previewSection.classList.add('flex-1', 'w-full', 'h-full');
+            if (previewSection) {
+                previewSection.classList.remove('hidden');
+                previewSection.classList.add('flex-1', 'w-full', 'h-full');
+            }
 
             // Update preview content
             updatePreview();
-
-            // Prevent default behavior and stop propagation
-            event.preventDefault();
-            event.stopPropagation();
+            
             return false;
         } catch (error) {
             console.error('Error switching to preview:', error);
@@ -594,36 +604,55 @@ document.addEventListener('DOMContentLoaded', () => {
         const framework = currentSession.projectType;
         const previewLoading = document.getElementById('previewLoading');
 
-        console.log('Current project type:', framework);
-        console.log('Available files:', Array.from(currentSession.files.keys()));
+        if (!iframe || !previewLoading) {
+            console.error('Required preview elements not found');
+            return;
+        }
 
         try {
             previewLoading.classList.remove('hidden');
 
             if (framework === 'none') {
-                // Handle no-framework preview
-                handleNoFrameworkPreview(iframe);
+                await handleNoFrameworkPreview(iframe);
+                previewLoading.classList.add('hidden');
             } else {
-                // For framework projects, use preview service
                 console.log(`Initializing preview for ${framework} project`);
-                const previewUrl = await daytonaService.initializeWorkspace(
-                    Object.fromEntries(currentSession.files),
-                    framework
-                );
+                const files = Object.fromEntries(currentSession.files);
                 
+                // Set up iframe load handlers before setting src
+                const loadPromise = new Promise((resolve, reject) => {
+                    iframe.onload = () => {
+                        console.log('Iframe loaded successfully');
+                        previewLoading.classList.add('hidden');
+                        resolve();
+                    };
+                    
+                    iframe.onerror = (error) => {
+                        console.error('Iframe loading error:', error);
+                        previewLoading.classList.add('hidden');
+                        reject(error);
+                    };
+                });
+
+                const previewUrl = await daytonaService.initializeWorkspace(files, framework);
                 console.log('Preview URL:', previewUrl);
+
+                // Use sandbox to prevent form submissions and page refreshes
+                iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups');
                 iframe.src = previewUrl;
+
+                // Wait for iframe to load
+                await loadPromise;
             }
         } catch (error) {
             console.error('Preview error:', error);
             logPreviewError(error, framework);
-        } finally {
             previewLoading.classList.add('hidden');
         }
     }
 
     // Add this helper function for no-framework preview
-    function handleNoFrameworkPreview(iframe) {
+    async function handleNoFrameworkPreview(iframe) {
         try {
             // Look for HTML file
             const htmlFile = Array.from(currentSession.files.entries())
@@ -666,7 +695,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Add event listeners for the buttons
     codeBtn.addEventListener('click', switchToCode);
-    previewBtn.addEventListener('click', switchToPreview);
+    previewBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        switchToPreview(e);
+    }, { passive: false });
 
     // Terminal resize functionality
     const terminalHeader = terminalPanel.querySelector('.cursor-ns-resize');

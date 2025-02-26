@@ -473,3 +473,18 @@ code[class*="language-"] {
     0%, 60%, 100% { transform: translateY(0); }
     30% { transform: translateY(-4px); }
 }
+
+/* Prevent unwanted form submissions */
+button[type="button"] {
+    pointer-events: auto;
+    cursor: pointer;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+/* Ensure iframe doesn't trigger form submission */
+iframe {
+    pointer-events: auto;
+    border: none;
+}
