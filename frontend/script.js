@@ -1,3 +1,5 @@
+import { daytonaService } from './daytonaService.js';
+
 document.addEventListener('DOMContentLoaded', () => {
     // Get all required elements and check if they exist
     const elements = {
@@ -18,6 +20,11 @@ document.addEventListener('DOMContentLoaded', () => {
     for (const [name, element] of Object.entries(elements)) {
         if (!element) {
             console.error(`Required element "${name}" not found in the DOM`);
+            document.body.innerHTML = `
+                <div class="p-4 bg-red-100 text-red-700">
+                    Error: Required element "${name}" not found. Please check the console for details.
+                </div>
+            `;
             return;
         }
     }
@@ -100,17 +107,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Handle Generate Button Click
     generateBtn.addEventListener('click', async () => {
-        if (currentSession.isInitialized) return; // Prevent multiple generations
-        
-        const framework = frameworkSelect.value;
-        const prompt = promptInput.value.trim();
-
-        if (!prompt) {
-            addBotMessage("Please enter a description of what you'd like to build.");
-            return;
-        }
-
         try {
+            console.log('Generate button clicked');
+            
+            // Check if already generating
+            if (generateBtn.disabled) {
+                console.log('Generation already in progress');
+                return;
+            }
+
+            const framework = frameworkSelect.value;
+            const prompt = promptInput.value.trim();
+
+            if (!prompt) {
+                console.log('No prompt provided');
+                addBotMessage("Please enter a description of what you'd like to build.");
+                return;
+            }
+
             // Update button state
             generateBtn.disabled = true;
             frameworkSelect.disabled = true;
@@ -130,6 +144,11 @@ document.addEventListener('DOMContentLoaded', () => {
             addBotMessage("Starting new project generation...");
             addUserMessage(prompt);
 
+            console.log('Making API request with:', {
+                techName: framework,
+                prompt: prompt
+            });
+
             const response = await fetch('http://localhost:5000/api/generate-project', {
                 method: 'POST',
                 headers: {
@@ -142,7 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                throw new Error(`HTTP error! status: ${response.status} - ${await response.text()}`);
             }
 
             // Handle streaming response
@@ -163,6 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     try {
                         const jsonStr = line.slice(6);
+                        console.log('Received message:', jsonStr);
                         const message = JSON.parse(jsonStr);
                         
                         switch (message.type) {
@@ -171,6 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 break;
 
                             case 'structure':
+                                console.log('Rendering file structure:', message.data);
                                 addBotMessage("Project structure created. Generating code...");
                                 renderFileTree(message.data);
                                 break;
@@ -181,6 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                     code: message.data.code,
                                     language: message.data.language || getLanguageFromPath(message.data.path)
                                 };
+                                console.log('Adding file:', fileData.path);
                                 currentSession.files.set(fileData.path, fileData);
                                 
                                 if (currentSession.files.size === 1) {
@@ -193,11 +215,12 @@ document.addEventListener('DOMContentLoaded', () => {
                                 break;
 
                             case 'error':
+                                console.error('Generation error:', message.data.error);
                                 addBotMessage(`❌ Error: ${message.data.error}`);
                                 break;
                         }
                     } catch (error) {
-                        console.error('Error parsing message:', error);
+                        console.error('Error parsing message:', error, 'Message:', line);
                     }
                 }
             }
@@ -224,10 +247,10 @@ document.addEventListener('DOMContentLoaded', () => {
             promptInput.placeholder = "Describe the changes you want to make...";
 
         } catch (error) {
-            console.error('Error:', error);
+            console.error('Generation error:', error);
             addBotMessage(`❌ Error: ${error.message}`);
-        } finally {
-            // Reset button state
+            
+            // Reset button state on error
             generateBtn.disabled = false;
             frameworkSelect.disabled = false;
             generateBtn.innerHTML = `
@@ -491,34 +514,159 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Toggle between code and preview
-    codeBtn.addEventListener('click', () => {
+    // Update the tab switching logic
+    function switchToPreview() {
+        try {
+            // Update button states
+            previewBtn.classList.add('text-[#58A6FF]', 'bg-[#1E1E1E]', 'border-t-2', 'border-[#58A6FF]');
+            previewBtn.classList.remove('text-[#8B949E]');
+            
+            codeBtn.classList.remove('text-[#58A6FF]', 'bg-[#1E1E1E]', 'border-t-2', 'border-[#58A6FF]');
+            codeBtn.classList.add('text-[#8B949E]', 'hover:text-[#E1E4E8]');
+
+            // Hide code-related elements with smooth transition
+            const fileExplorer = document.querySelector('.w-60');
+            fileExplorer.style.transition = 'transform 0.3s ease-out';
+            fileExplorer.style.transform = 'translateX(-100%)';
+            setTimeout(() => fileExplorer.classList.add('hidden'), 300);
+            
+            terminalPanel.style.transition = 'transform 0.3s ease-out';
+            terminalPanel.style.transform = 'translateY(100%)';
+            setTimeout(() => terminalPanel.classList.add('hidden'), 300);
+            
+            codeSection.classList.add('hidden');
+            
+            // Show preview section
+            previewSection.classList.remove('hidden');
+            previewSection.classList.add('flex-1', 'w-full', 'h-full');
+
+            // Update preview content
+            updatePreview();
+
+            // Prevent default behavior and stop propagation
+            event.preventDefault();
+            event.stopPropagation();
+            return false;
+        } catch (error) {
+            console.error('Error switching to preview:', error);
+        }
+    }
+
+    function switchToCode() {
+        // Update button states
+        previewBtn.classList.remove('text-[#58A6FF]', 'bg-[#1E1E1E]', 'border-t-2', 'border-[#58A6FF]');
+        previewBtn.classList.add('text-[#8B949E]', 'hover:text-[#E1E4E8]');
+        
         codeBtn.classList.add('text-[#58A6FF]', 'bg-[#1E1E1E]', 'border-t-2', 'border-[#58A6FF]');
         codeBtn.classList.remove('text-[#8B949E]');
-        previewBtn.classList.remove('text-[#58A6FF]', 'bg-[#1E1E1E]', 'border-t-2', 'border-[#58A6FF]');
-        previewBtn.classList.add('text-[#8B949E]');
+
+        // Cleanup Daytona workspace if needed
+        if (currentSession.projectType !== 'none') {
+            daytonaService.cleanup().catch(console.error);
+        }
+
+        // Show code-related elements with smooth transition
+        const fileExplorer = document.querySelector('.w-60');
+        fileExplorer.classList.remove('hidden');
+        fileExplorer.style.transition = 'transform 0.3s ease-out';
+        fileExplorer.style.transform = 'translateX(0)';
+        
+        terminalPanel.classList.remove('hidden');
+        terminalPanel.style.transition = 'transform 0.3s ease-out';
+        terminalPanel.style.transform = 'translateY(0)';
         
         codeSection.classList.remove('hidden');
+        
+        // Hide preview
         previewSection.classList.add('hidden');
+        previewSection.classList.remove('flex-1', 'w-full', 'h-full');
         
-        // Show file section and terminal
-        document.querySelector('.w-60').classList.remove('hidden');
-        terminalPanel.classList.remove('hidden');
-    });
+        // Clear iframe src
+        const iframe = document.getElementById('preview');
+        iframe.src = '';
+        iframe.srcdoc = '';
+    }
 
-    previewBtn.addEventListener('click', () => {
-        previewBtn.classList.add('text-[#58A6FF]', 'bg-[#1E1E1E]', 'border-t-2', 'border-[#58A6FF]');
-        previewBtn.classList.remove('text-[#8B949E]');
-        codeBtn.classList.remove('text-[#58A6FF]', 'bg-[#1E1E1E]', 'border-t-2', 'border-[#58A6FF]');
-        codeBtn.classList.add('text-[#8B949E]');
-        
-        previewSection.classList.remove('hidden');
-        codeSection.classList.add('hidden');
-        
-        // Hide file section and terminal
-        document.querySelector('.w-60').classList.add('hidden');
-        terminalPanel.classList.add('hidden');
-    });
+    // Update preview functionality
+    async function updatePreview() {
+        console.log('\n=== Starting Preview Update ===');
+        const iframe = document.getElementById('preview');
+        const framework = currentSession.projectType;
+        const previewLoading = document.getElementById('previewLoading');
+
+        console.log('Current project type:', framework);
+        console.log('Available files:', Array.from(currentSession.files.keys()));
+
+        try {
+            previewLoading.classList.remove('hidden');
+
+            if (framework === 'none') {
+                // Handle no-framework preview
+                handleNoFrameworkPreview(iframe);
+            } else {
+                // For framework projects, use preview service
+                console.log(`Initializing preview for ${framework} project`);
+                const previewUrl = await daytonaService.initializeWorkspace(
+                    Object.fromEntries(currentSession.files),
+                    framework
+                );
+                
+                console.log('Preview URL:', previewUrl);
+                iframe.src = previewUrl;
+            }
+        } catch (error) {
+            console.error('Preview error:', error);
+            logPreviewError(error, framework);
+        } finally {
+            previewLoading.classList.add('hidden');
+        }
+    }
+
+    // Add this helper function for no-framework preview
+    function handleNoFrameworkPreview(iframe) {
+        try {
+            // Look for HTML file
+            const htmlFile = Array.from(currentSession.files.entries())
+                .find(([path]) => path.toLowerCase().endsWith('.html'))?.[1];
+                
+            const cssFile = Array.from(currentSession.files.entries())
+                .find(([path]) => path.toLowerCase().endsWith('.css'))?.[1];
+                
+            const jsFile = Array.from(currentSession.files.entries())
+                .find(([path]) => path.toLowerCase().endsWith('.js') && !path.includes('index.js'))?.[1];
+
+            if (!htmlFile) {
+                throw new Error('No HTML file found for preview');
+            }
+
+            // Create a complete HTML document
+            const htmlContent = `
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Preview</title>
+                    <script src="https://cdn.tailwindcss.com"></script>
+                    ${cssFile ? `<style>${cssFile.code}</style>` : ''}
+                </head>
+                <body>
+                    ${htmlFile.code}
+                    ${jsFile ? `<script type="module">${jsFile.code}</script>` : ''}
+                </body>
+                </html>
+            `;
+
+            iframe.srcdoc = htmlContent;
+        } catch (error) {
+            console.error('Error setting preview content:', error);
+            throw error;
+        }
+    }
+
+    // Add event listeners for the buttons
+    codeBtn.addEventListener('click', switchToCode);
+    previewBtn.addEventListener('click', switchToPreview);
 
     // Terminal resize functionality
     const terminalHeader = terminalPanel.querySelector('.cursor-ns-resize');
@@ -709,117 +857,21 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Update the preview toggle functionality
-    function setupPreviewToggle() {
-        const codeBtn = document.getElementById('codeBtn');
-        const previewBtn = document.getElementById('previewBtn');
-        const codeSection = document.getElementById('codeSection');
-        const previewSection = document.getElementById('previewSection');
-        const fileTree = document.getElementById('fileTree');
-        const terminalPanel = document.getElementById('terminalPanel');
-
-        // Add preview header
-        const previewHeader = document.createElement('div');
-        previewHeader.className = 'sticky top-0 z-10 bg-[#2D2D2D] border-b border-[#424548] px-4 py-2 flex items-center justify-between';
-        previewHeader.innerHTML = `
-            <div class="flex items-center gap-2">
-                <span class="text-[#E1E4E8] text-sm">Preview Mode</span>
-                <span class="px-2 py-0.5 text-xs bg-[#2EA043] text-white rounded">Live</span>
-            </div>
-            <div class="flex items-center gap-3">
-                <!-- Device Responsive Buttons -->
-                <div class="flex items-center gap-2">
-                    <button class="preview-device-btn" data-width="375" title="Mobile">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-                        </svg>
-                    </button>
-                    <button class="preview-device-btn" data-width="768" title="Tablet">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-                        </svg>
-                    </button>
-                    <button class="preview-device-btn" data-width="1024" title="Desktop">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-                        </svg>
-                    </button>
+    // Add this at the top of script.js
+    function logPreviewError(error, context) {
+        console.error(`Preview Error (${context}):`, error);
+        const previewLoading = document.getElementById('previewLoading');
+        const iframe = document.getElementById('preview');
+        
+        previewLoading?.classList.add('hidden');
+        if (iframe) {
+            iframe.srcdoc = `
+                <div class="p-4">
+                    <h2 class="text-red-500 text-xl mb-2">Preview Error</h2>
+                    <p class="text-gray-700">${error.message}</p>
+                    <pre class="mt-4 p-2 bg-gray-100 rounded">${context}</pre>
                 </div>
-                <!-- Open in New Tab Button -->
-                <button id="openNewTabBtn" class="text-[#E1E4E8] hover:text-white">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-                    </svg>
-                </button>
-            </div>
-        `;
-        previewSection.insertBefore(previewHeader, previewSection.firstChild);
-
-        // Add styles for preview device buttons
-        const style = document.createElement('style');
-        style.textContent = `
-            .preview-device-btn {
-                color: #8B949E;
-                padding: 4px;
-                border-radius: 4px;
-                transition: all 0.2s;
-            }
-            .preview-device-btn:hover {
-                color: #E1E4E8;
-                background: #363636;
-            }
-            .preview-device-btn.active {
-                color: #58A6FF;
-                background: #1E1E1E;
-            }
-            #preview {
-                margin: 0 auto;
-                transition: width 0.3s ease;
-                height: calc(100vh - 102px); /* Adjust based on header heights */
-            }
-        `;
-        document.head.appendChild(style);
-
-        // Toggle sections and handle preview
-        function togglePreview(showPreview) {
-            codeBtn.classList.toggle('text-[#58A6FF]', !showPreview);
-            codeBtn.classList.toggle('bg-[#1E1E1E]', !showPreview);
-            previewBtn.classList.toggle('text-[#58A6FF]', showPreview);
-            previewBtn.classList.toggle('bg-[#1E1E1E]', showPreview);
-            
-            codeSection.style.display = showPreview ? 'none' : 'flex';
-            previewSection.style.display = showPreview ? 'flex' : 'none';
-            fileTree.style.display = showPreview ? 'none' : 'block';
-            terminalPanel.style.display = showPreview ? 'none' : 'block';
+            `;
         }
-
-        // Event listeners
-        previewBtn.addEventListener('click', () => togglePreview(true));
-        codeBtn.addEventListener('click', () => togglePreview(false));
-
-        // Handle device preview buttons
-        document.querySelectorAll('.preview-device-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const width = e.currentTarget.dataset.width;
-                const iframe = document.getElementById('preview');
-                
-                // Update active state
-                document.querySelectorAll('.preview-device-btn').forEach(b => 
-                    b.classList.remove('active'));
-                e.currentTarget.classList.add('active');
-                
-                // Update iframe width
-                iframe.style.width = `${width}px`;
-            });
-        });
-
-        // Handle open in new tab
-        document.getElementById('openNewTabBtn').addEventListener('click', () => {
-            const iframe = document.getElementById('preview');
-            window.open(iframe.src, '_blank');
-        });
     }
-
-    // Call this function after your DOM is loaded
-    setupPreviewToggle();
 }); 

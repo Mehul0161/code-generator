@@ -128,7 +128,11 @@
             <div class="h-14 bg-[#2D2D2D] flex items-center justify-between border-b border-[#424548] px-2">
                 <div class="flex">
                     <button id="codeBtn" class="h-14 px-4 text-sm text-[#58A6FF] bg-[#1E1E1E] border-t-2 border-[#58A6FF]">Code</button>
-                    <button id="previewBtn" class="h-14 px-4 text-sm text-[#8B949E] hover:text-[#E1E4E8]">Preview</button>
+                    <button 
+                        id="previewBtn" 
+                        type="button"
+                        class="h-14 px-4 text-sm text-[#8B949E] hover:text-[#E1E4E8]"
+                    >Preview</button>
                 </div>
                 <!-- Project Actions -->
                 <div class="flex items-center gap-2 pr-2">
@@ -151,7 +155,7 @@
                 </div>
 
                 <!-- Editor Area (remaining width) -->
-                <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+                <div class="flex-1 flex flex-col min-w-0 overflow-hidden relative">
                     <!-- Code Section -->
                     <div id="codeSection" class="flex-1 flex flex-col overflow-hidden">
                         <div id="codeDisplay" class="flex-1 overflow-auto bg-[#1E1E1E]">
@@ -160,11 +164,15 @@
                     </div>
 
                     <!-- Preview Section -->
-                    <div id="previewSection" class="hidden flex-1 flex flex-col">
-                        <!-- Preview header will be inserted here by JavaScript -->
-                        <div class="flex-1 overflow-auto">
-                            <iframe id="preview" class="w-full h-full border-0 bg-white"></iframe>
+                    <div id="previewSection" class="hidden absolute inset-0 bg-white">
+                        <!-- Loading Overlay -->
+                        <div id="previewLoading" class="absolute inset-0 bg-white flex items-center justify-center hidden">
+                            <div class="text-center">
+                                <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                                <p class="text-gray-600">Starting development server...</p>
+                            </div>
                         </div>
+                        <iframe id="preview" class="w-full h-full border-none"></iframe>
                     </div>
 
                     <!-- Terminal (sticky at bottom) -->
@@ -189,6 +197,7 @@
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <script src="daytonaService.js" type="module"></script>
+    <script src="script.js" type="module"></script>
 </body>
 </html> 

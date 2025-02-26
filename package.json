@@ -7,7 +7,9 @@
         "dotenv": "^16.0.0",
         "express": "^4.17.1",
         "nodemon": "^3.1.9",
-        "openai": "^4.0.0"
+        "openai": "^4.0.0",
+        "fs-extra": "^11.2.0",
+        "uuid": "^9.0.1"
     },
     "scripts": {
         "start": "node src/server.js",

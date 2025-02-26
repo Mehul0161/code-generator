@@ -1,14 +1,22 @@
 const express = require('express');
 const cors = require('cors');
+const previewService = require('./services/previewService');
 require('dotenv').config();
 const { generateProjectStructure } = require('./utils/structureGenerator');
 const { getCode, generateProjectInSteps, updateCode } = require('./utils/codeGenerator');
 const AIService = require('./utils/aiService');
+const path = require('path');
 
 const app = express();
+const port = process.env.PORT || 5000;
 
-app.use(cors());
+// Middleware
 app.use(express.json());
+app.use(cors());
+
+// Set up Daytona proxy endpoints
+AIService.setupDaytonaProxy(app);
+
 app.use(express.static('frontend'));
 
 app.post('/api/generate-project', async (req, res) => {
@@ -134,6 +142,41 @@ app.post('/api/update-code', async (req, res) => {
         res.end();
     }
 });
+
+// Preview endpoints
+app.post('/api/preview', async (req, res) => {
+    try {
+        const { framework, files } = req.body;
+        const workspaceId = await previewService.createWorkspace(files, framework);
+        const previewUrl = await previewService.getPreviewUrl(workspaceId);
+        res.json({ workspaceId, previewUrl });
+    } catch (error) {
+        console.error('Preview creation failed:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/api/preview/:workspaceId', async (req, res) => {
+    try {
+        const { workspaceId } = req.params;
+        const previewUrl = await previewService.getPreviewUrl(workspaceId);
+        res.json({ previewUrl });
+    } catch (error) {
+        res.status(404).json({ error: 'Preview not found' });
+    }
+});
+
+app.delete('/api/preview/:workspaceId', async (req, res) => {
+    try {
+        await previewService.cleanup(req.params.workspaceId);
+        res.sendStatus(200);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Serve preview files
+app.use('/preview', express.static(path.join(__dirname, '../previews')));
 
 function generatePlaceholderCode(filePath, techName) {
     const ext = filePath.split('.').pop().toLowerCase();
@@ -610,7 +653,9 @@ function generatePageJSX(pageName) {
     }
 }
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+// Start server
+app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+    // Start the cleanup interval
+    previewService.startCleanupInterval();
 }); 

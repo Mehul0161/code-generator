@@ -1,8 +1,84 @@
 const axios = require('axios');
 require('dotenv').config();
+const express = require('express');
+const fetch = require('node-fetch');
+const cors = require('cors');
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+
+const app = express();
+
+// Add these proxy endpoints
+app.use(cors()); // Enable CORS for all routes
+
+// Daytona workspace creation
+app.post('/api/daytona-proxy', async (req, res) => {
+    try {
+        const { apiKey, config } = req.body;
+        console.log('Creating Daytona workspace:', config);
+        
+        const response = await fetch('https://app.daytona.io/api/workspaces', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(config)
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Daytona API error:', errorText);
+            throw new Error(`Daytona API error: ${errorText}`);
+        }
+
+        const data = await response.json();
+        console.log('Workspace created:', data);
+        res.json(data);
+    } catch (error) {
+        console.error('Daytona proxy error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Daytona preview URL
+app.get('/api/daytona-proxy/preview/:workspaceId', async (req, res) => {
+    try {
+        const { workspaceId } = req.params;
+        const response = await fetch(`https://app.daytona.io/api/workspaces/${workspaceId}/preview`);
+        
+        if (!response.ok) {
+            throw new Error(`Failed to get preview URL: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Daytona workspace cleanup
+app.delete('/api/daytona-proxy/:workspaceId', async (req, res) => {
+    try {
+        const { workspaceId } = req.params;
+        const response = await fetch(`https://app.daytona.io/api/workspaces/${workspaceId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${process.env.DAYTONA_API_KEY}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Failed to delete workspace: ${response.statusText}`);
+        }
+        
+        res.sendStatus(200);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
 
 class AIService {
     static async validateApiKey() {
@@ -293,7 +369,7 @@ class AIService {
             
             yield {
                 type: 'analysis',
-                data: { message: `�� Change Analysis:\n${analysisText}` }
+                data: { message: ` Change Analysis:\n${analysisText}` }
             };
 
             // Then get files to update
@@ -611,6 +687,79 @@ class AIService {
                 break;
         }
         return structure;
+    }
+
+    static setupDaytonaProxy(app) {
+        // Enable CORS for all routes
+        app.use(cors());
+
+        // Daytona workspace creation
+        app.post('/api/daytona-proxy', async (req, res) => {
+            try {
+                const { apiKey, config } = req.body;
+                console.log('Creating Daytona workspace:', config);
+                
+                const response = await fetch('https://app.daytona.io/api/workspaces', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(config)
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Daytona API error:', errorText);
+                    throw new Error(`Daytona API error: ${errorText}`);
+                }
+
+                const data = await response.json();
+                console.log('Workspace created:', data);
+                res.json(data);
+            } catch (error) {
+                console.error('Daytona proxy error:', error);
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        // Daytona preview URL
+        app.get('/api/daytona-proxy/preview/:workspaceId', async (req, res) => {
+            try {
+                const { workspaceId } = req.params;
+                const response = await fetch(`https://app.daytona.io/api/workspaces/${workspaceId}/preview`);
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to get preview URL: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                res.json(data);
+            } catch (error) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        // Daytona workspace cleanup
+        app.delete('/api/daytona-proxy/:workspaceId', async (req, res) => {
+            try {
+                const { workspaceId } = req.params;
+                const response = await fetch(`https://app.daytona.io/api/workspaces/${workspaceId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${process.env.DAYTONA_API_KEY}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to delete workspace: ${response.statusText}`);
+                }
+                
+                res.sendStatus(200);
+            } catch (error) {
+                res.status(500).json({ error: error.message });
+            }
+        });
     }
 }
 
